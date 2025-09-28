@@ -45,7 +45,7 @@ function Daftar() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRFToken": csrftoken || "QmcGnALhGaEv0jX12vzrqj8htAaCUxB1fYcbJg4nbnOkMQTEfi9KbpuIY1v4JhSz",
+          "X-CSRFToken": csrftoken || "",
         },
         credentials: "include", 
         body: JSON.stringify(form),
