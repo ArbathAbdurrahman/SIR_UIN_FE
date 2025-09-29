@@ -2,21 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Pages.css";
 
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== "") {
-    const cookies = document.cookie.split(";");
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.startsWith(name + "=")) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
-
 function Daftar() {
   const [form, setForm] = useState({
     username: "",
@@ -39,14 +24,9 @@ function Daftar() {
     try {
       console.log("Payload dikirim:", form);
 
-      const csrftoken = getCookie("csrftoken");
-
       const response = await fetch("https://sirsakapi.teknohole.com/api/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": csrftoken || "",
-        },
+        headers: {"Content-Type": "application/json"},
         credentials: "include", 
         body: JSON.stringify(form),
       });
@@ -58,9 +38,9 @@ function Daftar() {
       const data = await response.json();
       console.log("Response:", data);
 
-      if (data.success && data.token) {
-        localStorage.setItem("access_token", data.token);
-        navigate("/");
+      if (data.success) {
+        // localStorage.setItem("refresh_token", data.token);
+        navigate("/login");
       } else {
         alert(data.message || "Pendaftaran gagal. Periksa data yang kamu masukkan.");
       }

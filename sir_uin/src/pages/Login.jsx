@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { axiosAuth, setTokens } from "../services/api.js"; // perhatikan path
 import "./Pages.css";
 
 function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ username: "", password: "" });
   const navigate = useNavigate();
 
   const handleLogin = (e) => {
@@ -15,27 +16,16 @@ function Login() {
 
     try {
       console.log("Payload dikirim:", form);
-      const response = await fetch("https://sirsakapi.teknohole.com/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(form),
-      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+      if (data.token) {
+        setTokens(data.token, data.refresh_token);
       }
 
-      const data = await response.json();
-      if (data.success && data.token) {
-        localStorage.setItem("access_token", data.token);
-        navigate("/");
-      } else {
-        alert(data.message || "Login gagal. Periksa username/password.");
-      }
+      // redirect ke beranda
+      navigate("/");
     } catch (error) {
       console.error("Error during login:", error);
-      alert("Terjadi kesalahan. Silakan coba lagi.");
+      alert("Login gagal. Periksa username/password.");
     }
   };
 
@@ -48,9 +38,9 @@ function Login() {
         <h1 className="text-xl font-bold mb-4">Login</h1>
 
         <input
-          type="email"
-          name="email"
-          placeholder="Email"
+          type="text"
+          name="username"
+          placeholder="Username"
           value={form.username}
           onChange={handleLogin}
           className="w-full p-2 mb-3 border rounded"
