@@ -14,11 +14,12 @@ function App() {
       <div className="container">
         <Routes>
           <Route path="/" element={
-            <Aksesibilitas>
+            // <Aksesibilitas>
               <Beranda />
-            </Aksesibilitas>} />
-          <Route path="/Login" element={<Login />} />
-          <Route path="/Daftar" element={<Daftar/>} />
+            // </Aksesibilitas>
+          } />
+          <Route path="/login" element={<Login />} />
+          <Route path="/daftar" element={<Daftar/>} />
         </Routes>
       </div>
     </Router>
