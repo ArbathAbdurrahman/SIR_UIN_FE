@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface StatusBadgeProps {
-  status: "available" | "occupied" | "pending" | "approved" | "rejected";
+  status: "available" | "occupied" | "pending" | "approved" | "rejected" | "maintenance";
   className?: string;
 }
 
@@ -12,6 +12,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     pending: "bg-room-pending text-white",
     approved: "bg-success text-success-foreground",
     rejected: "bg-destructive text-destructive-foreground",
+    maintenance: "bg-warning text-warning-foreground",
   };
 
   const labels = {
@@ -20,6 +21,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     pending: "Pending",
     approved: "Disetujui", 
     rejected: "Ditolak",
+    maintenance: "Maintenance",
   };
 
   return (

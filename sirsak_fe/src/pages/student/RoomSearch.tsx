@@ -13,7 +13,6 @@ import {
   Wifi,
   Monitor,
   Volume2,
-  ArrowLeft,
   Filter
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -52,44 +51,63 @@ const RoomSearch = () => {
       location: "Gedung Kuliah Lt. 3",
       capacity: 50,
       status: "available" as const,
-      facilities: ["Proyektor", "AC", "WiFi", "Whiteboard"],
-      description: "Ruang kelas standar untuk perkuliahan"
+      facilities: ["Whiteboard", "AC", "WiFi"],
+      description: "Ruang kelas standar dengan fasilitas lengkap"
     },
     {
       id: 4,
       name: "Lab Multimedia",
       location: "Gedung Teknik Lt. 1",
       capacity: 30,
-      status: "pending" as const,
-      facilities: ["Proyektor", "AC", "WiFi", "Komputer", "Sound System"],
-      description: "Lab multimedia dengan fasilitas lengkap"
+      status: "maintenance" as const,
+      facilities: ["Komputer", "Software Editing", "AC", "WiFi"],
+      description: "Lab khusus untuk multimedia dan editing"
+    },
+    {
+      id: 5,
+      name: "Ruang Diskusi A",
+      location: "Perpustakaan Lt. 2",
+      capacity: 15,
+      status: "available" as const,
+      facilities: ["Whiteboard", "AC", "WiFi"],
+      description: "Ruang diskusi kecil untuk kelompok"
     }
   ];
 
   const locations = [
-    "Gedung Teknik",
-    "Gedung Kuliah", 
-    "Gedung Rektorat",
-    "Gedung Ekonomi",
-    "Gedung Perpustakaan"
+    "Gedung Teknik Lt. 1",
+    "Gedung Teknik Lt. 2", 
+    "Gedung Rektorat Lt. 3",
+    "Gedung Kuliah Lt. 3",
+    "Perpustakaan Lt. 2"
   ];
 
   const facilitiesOptions = [
     "Proyektor",
     "AC", 
     "WiFi",
-    "Sound System",
     "Komputer",
-    "Whiteboard"
+    "Sound System",
+    "Whiteboard",
+    "Software Editing"
   ];
 
+  // Filter rooms based on search criteria
+  const filteredRooms = rooms.filter(room => {
+    const capacityMatch = !searchFilters.capacity || room.capacity >= parseInt(searchFilters.capacity);
+    const locationMatch = !searchFilters.location || room.location === searchFilters.location;
+    const facilitiesMatch = !searchFilters.facilities || room.facilities.includes(searchFilters.facilities);
+    
+    return capacityMatch && locationMatch && facilitiesMatch;
+  });
+
   const getFacilityIcon = (facility: string) => {
-    const icons: { [key: string]: React.ReactNode } = {
-      "Proyektor": <Monitor className="h-3 w-3" />,
-      "WiFi": <Wifi className="h-3 w-3" />,
-      "Sound System": <Volume2 className="h-3 w-3" />,
+    const icons: { [key: string]: string } = {
+      "Proyektor": "📽️",
       "AC": "❄️",
+      "WiFi": "📶",
       "Komputer": "💻",
+      "Sound System": "🔊",
       "Whiteboard": "📝"
     };
     return icons[facility] || "🔧";
@@ -100,179 +118,171 @@ const RoomSearch = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-gradient-primary text-white p-6">
-        <div className="container mx-auto">
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => navigate("/student/dashboard")}
-              className="text-white hover:bg-white/20 mr-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Kembali
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">Pencarian Ruangan</h1>
-              <p className="opacity-90">Temukan ruangan sesuai kebutuhan Anda</p>
+    <div className="p-6">
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-foreground">Pencarian Ruangan</h1>
+        <p className="text-muted-foreground mt-1">Temukan ruangan yang sesuai dengan kebutuhan Anda</p>
+      </div>
+
+      {/* Search Filters */}
+      <Card className="mb-6 shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Filter className="h-5 w-5 mr-2 text-primary" />
+            Filter Pencarian
+          </CardTitle>
+          <CardDescription>
+            Gunakan filter untuk menemukan ruangan yang sesuai
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="capacity">Kapasitas Minimal</Label>
+              <Input
+                id="capacity"
+                type="number"
+                placeholder="Contoh: 30"
+                value={searchFilters.capacity}
+                onChange={(e) => setSearchFilters(prev => ({...prev, capacity: e.target.value}))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Lokasi</Label>
+              <Select 
+                value={searchFilters.location} 
+                onValueChange={(value) => setSearchFilters(prev => ({...prev, location: value}))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih lokasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location} value={location}>
+                      {location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="facilities">Fasilitas</Label>
+              <Select 
+                value={searchFilters.facilities} 
+                onValueChange={(value) => setSearchFilters(prev => ({...prev, facilities: value}))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih fasilitas" />
+                </SelectTrigger>
+                <SelectContent>
+                  {facilitiesOptions.map((facility) => (
+                    <SelectItem key={facility} value={facility}>
+                      <div className="flex items-center">
+                        <span className="mr-2">{getFacilityIcon(facility)}</span>
+                        {facility}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <Button 
+                onClick={() => setSearchFilters({capacity: "", location: "", facilities: ""})}
+                variant="outline"
+                className="w-full"
+              >
+                Reset Filter
+              </Button>
             </div>
           </div>
-        </div>
-      </header>
+        </CardContent>
+      </Card>
 
-      <div className="container mx-auto p-6">
-        {/* Search Filters */}
-        <Card className="mb-6 shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Filter className="h-5 w-5 mr-2 text-primary" />
-              Filter Pencarian
-            </CardTitle>
-            <CardDescription>
-              Gunakan filter untuk menemukan ruangan yang sesuai
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="capacity">Kapasitas Minimal</Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  placeholder="Contoh: 30"
-                  value={searchFilters.capacity}
-                  onChange={(e) => setSearchFilters({...searchFilters, capacity: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="location">Lokasi</Label>
-                <Select 
-                  value={searchFilters.location} 
-                  onValueChange={(value) => setSearchFilters({...searchFilters, location: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih gedung" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem key={location} value={location}>
-                        {location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="facilities">Fasilitas</Label>
-                <Select 
-                  value={searchFilters.facilities} 
-                  onValueChange={(value) => setSearchFilters({...searchFilters, facilities: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih fasilitas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {facilitiesOptions.map((facility) => (
-                      <SelectItem key={facility} value={facility}>
-                        {facility}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-end">
-                <Button className="w-full bg-gradient-primary">
-                  <Search className="h-4 w-4 mr-2" />
-                  Cari Ruangan
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Results Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Hasil Pencarian ({rooms.length} ruangan)</h2>
+      {/* Search Results */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">
+            Hasil Pencarian ({filteredRooms.length} ruangan)
+          </h2>
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-room-available rounded-full mr-2"></div>
+              <div className="w-3 h-3 bg-success rounded-full mr-2"></div>
               <span>Tersedia</span>
             </div>
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-room-occupied rounded-full mr-2"></div>
+              <div className="w-3 h-3 bg-destructive rounded-full mr-2"></div>
               <span>Terisi</span>
             </div>
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-room-pending rounded-full mr-2"></div>
-              <span>Pending</span>
+              <div className="w-3 h-3 bg-warning rounded-full mr-2"></div>
+              <span>Maintenance</span>
             </div>
           </div>
         </div>
 
-        {/* Room List */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {rooms.map((room) => (
-            <Card key={room.id} className="shadow-soft hover:shadow-medium transition-all">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{room.name}</CardTitle>
-                    <CardDescription className="flex items-center mt-1">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      {room.location}
-                    </CardDescription>
+        {filteredRooms.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredRooms.map((room) => (
+              <Card 
+                key={room.id} 
+                className="shadow-soft hover:shadow-medium transition-all duration-300 hover:-translate-y-1"
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{room.name}</CardTitle>
+                      <CardDescription className="flex items-center mt-1">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {room.location}
+                      </CardDescription>
+                    </div>
+                    <StatusBadge status={room.status} />
                   </div>
-                  <StatusBadge status={room.status} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">{room.description}</p>
-                
-                <div className="flex items-center mb-4">
-                  <Users className="h-4 w-4 mr-2 text-primary" />
-                  <span className="font-medium">Kapasitas: {room.capacity} orang</span>
-                </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      {room.description}
+                    </p>
 
-                <div className="mb-4">
-                  <h4 className="font-medium mb-2">Fasilitas:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {room.facilities.map((facility) => (
-                      <Badge key={facility} variant="secondary" className="text-xs">
-                        <span className="mr-1">{getFacilityIcon(facility)}</span>
-                        {facility}
-                      </Badge>
-                    ))}
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 mr-2 text-primary" />
+                      <span className="text-sm">Kapasitas: {room.capacity} orang</span>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium mb-2">Fasilitas:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {room.facilities.map((facility, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            <span className="mr-1">{getFacilityIcon(facility)}</span>
+                            {facility}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={() => handleReserve(room.id)}
+                      className="w-full"
+                      disabled={room.status !== "available"}
+                    >
+                      {room.status === "available" ? "Reservasi" : 
+                       room.status === "occupied" ? "Terisi" : "Maintenance"}
+                    </Button>
                   </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => handleReserve(room.id)}
-                    disabled={room.status === "occupied"}
-                    className="flex-1"
-                    variant={room.status === "available" ? "default" : "outline"}
-                  >
-                    {room.status === "available" ? "Reservasi" : 
-                     room.status === "occupied" ? "Tidak Tersedia" : "Lihat Detail"}
-                  </Button>
-                  <Button variant="outline">
-                    Detail
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {rooms.length === 0 && (
-          <Card className="shadow-soft">
-            <CardContent className="text-center py-12">
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="text-center py-12 shadow-soft">
+            <CardContent>
               <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Tidak ada ruangan ditemukan</h3>
               <p className="text-muted-foreground mb-4">
