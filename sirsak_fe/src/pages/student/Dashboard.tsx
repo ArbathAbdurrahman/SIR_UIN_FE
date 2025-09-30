@@ -57,33 +57,15 @@ const StudentDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background animate-fade-in">
-      {/* Header */}
-      <header className="bg-gradient-primary text-white p-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-primary-light/20 animate-pulse-glow"></div>
-        <div className="container mx-auto relative z-10">
-          <div className="flex justify-between items-center">
-            <div className="animate-slide-up">
-              <h1 className="text-2xl font-bold">Dashboard Mahasiswa</h1>
-              <p className="opacity-90">Selamat datang kembali, Ahmad Rizki</p>
-            </div>
-            <div className="flex items-center space-x-4 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20 transition-all duration-300 hover:scale-105"
-              >
-                <Bell className="h-4 w-4 mr-2 animate-bounce-gentle" />
-                Notifikasi
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="p-6 animate-fade-in">
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-foreground">Dashboard Mahasiswa</h1>
+        <p className="text-muted-foreground mt-1">Selamat datang kembali, Ahmad Rizki</p>
+      </div>
 
-      <div className="container mx-auto p-6">
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 animate-slide-up" style={{ animationDelay: "0.2s" }}>
           <Button 
             onClick={() => navigate("/student/search")}
             className="h-20 bg-gradient-card border border-border hover:shadow-large hover:-translate-y-1 transition-all duration-300 group"
@@ -129,7 +111,7 @@ const StudentDashboard = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: "0.3s" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: "0.3s" }}>
           {/* Recent Reservations */}
           <Card className="lg:col-span-2 shadow-soft hover:shadow-large transition-all duration-300">
             <CardHeader>
@@ -220,8 +202,8 @@ const StudentDashboard = () => {
           </Card>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 animate-slide-up" style={{ animationDelay: "0.4s" }}>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 animate-slide-up" style={{ animationDelay: "0.4s" }}>
           <Card className="shadow-soft hover:shadow-large transition-all duration-300 hover:-translate-y-1 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -257,7 +239,6 @@ const StudentDashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
       </div>
     </div>
   );
