@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { axiosAuth, setTokens } from "../services/api.js"; // perhatikan path
 import "./Pages.css";
 
 function Login() {
@@ -17,9 +16,25 @@ function Login() {
     try {
       console.log("Payload dikirim:", form);
 
-      if (data.token) {
-        setTokens(data.token, data.refresh_token);
+      // ganti URL sesuai API login-mu
+      const response = await fetch("https://sirsakapi.teknohole.com/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      if (!response.ok) {
+        throw new Error("Login gagal");
       }
+
+      const data = await response.json();
+      console.log("Respon login:", data);
+
+      // simpan access token & refresh token
+      localStorage.setItem("access_token", data.access);
+      localStorage.setItem("refresh_token", data.refresh);
 
       // redirect ke beranda
       navigate("/");
@@ -30,7 +45,7 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100">
       <form
         onSubmit={handleSubmit}
         className="bg-white p-6 rounded-2xl shadow-lg w-80"

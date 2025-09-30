@@ -5,6 +5,8 @@ import Aksesibilitas from "./components/Aksesibilitas";
 import Beranda from "./pages/Beranda";
 import Login from "./pages/Login";
 import Daftar from "./pages/Daftar";
+import Reservasi from "./pages/Reservasi"
+import ReservasiList from "./pages/ReservasiList"
 import "./App.css";
 
 function App() {
@@ -14,12 +16,14 @@ function App() {
       <div className="container">
         <Routes>
           <Route path="/" element={
-            // <Aksesibilitas>
+            <Aksesibilitas>
               <Beranda />
-            // </Aksesibilitas>
+            </Aksesibilitas>
           } />
           <Route path="/login" element={<Login />} />
           <Route path="/daftar" element={<Daftar/>} />
+          <Route path="/reservasi" element={<Reservasi/>} />
+          <Route path="/reservasilist" element={<ReservasiList/>} />
         </Routes>
       </div>
     </Router>
