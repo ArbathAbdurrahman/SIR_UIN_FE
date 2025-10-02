@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,25 +24,52 @@ import { cn } from "@/lib/utils";
 const ReservationForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-    const [date, setDate] = useState();
-  
+  const [date, setDate] = useState();
+
   const [formData, setFormData] = useState({
-    roomId: "",
-    date: "",
-    startTime: "",
-    endTime: "",
+    room: "",
+    start: "",
+    end: "",
     purpose: "",
-    participants: "",
-    additionalNotes: ""
+    requested_capacity: "",
+    status: "PENDING",
   });
 
-  // Mock rooms data
-  const rooms = [
-    { id: "1", name: "Lab Komputer 1", location: "Gedung Teknik Lt. 2", capacity: 40 },
-    { id: "2", name: "Ruang Seminar A", location: "Gedung Rektorat Lt. 3", capacity: 100 },
-    { id: "3", name: "Ruang Kelas 301", location: "Gedung Kuliah Lt. 3", capacity: 50 },
-    { id: "4", name: "Lab Multimedia", location: "Gedung Teknik Lt. 1", capacity: 30 }
-  ];
+  const [rooms, setRooms] = useState([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+
+  // fetch rooms dari API
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const token = localStorage.getItem("access_token"); // ambil dari localStorage setelah login
+        if (!token) {
+          throw new Error("Token tidak ditemukan, silakan login ulang");
+        }
+
+        const res = await fetch("https://sirsakapi.teknohole.com/api/rooms/", {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("Gagal mengambil data rooms");
+        }
+
+        const data = await res.json();
+        setRooms(data.results); // sesuaikan struktur JSON kamu
+      } catch (err) {
+        console.error("Gagal mengambil rooms:", err);
+        toast({ title: "Gagal memuat data ruangan", variant: "destructive" });
+      } finally {
+        setLoadingRooms(false);
+      }
+    };
+
+    fetchRooms();
+  }, []);
 
   const timeSlots = [
     "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
@@ -56,11 +83,10 @@ const ReservationForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Basic validation
-    if (!formData.roomId || !formData.date || !formData.startTime || !formData.endTime || !formData.purpose) {
+
+    if (!formData.room || !formData.start || !formData.end || !formData.purpose || !formData.requested_capacity) {
       toast({
         title: "Mohon lengkapi semua field yang wajib diisi",
         variant: "destructive"
@@ -68,19 +94,36 @@ const ReservationForm = () => {
       return;
     }
 
-    // Show success message
-    toast({
-      title: "Reservasi berhasil diajukan!",
-      description: "Permohonan Anda akan direview oleh dosen pembimbing",
-    });
+    try {
+      // kirim data ke API reservasi
+      const res = await fetch("https://sirsakapi.teknohole.com/api/reservations/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`
+        },
+        body: JSON.stringify(formData)
+      });
 
-    // Redirect to status page
-    navigate("/student/status");
+      if (!res.ok) {
+        throw new Error("Gagal mengajukan reservasi");
+      }
+
+      toast({
+        title: "Reservasi berhasil diajukan!",
+        description: "Permohonan Anda akan direview oleh staff fakultas",
+      });
+
+      const role = localStorage.getItem("role");
+      navigate(`/${role}/status`);
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Gagal mengajukan reservasi", variant: "destructive" });
+    }
   };
 
   return (
     <div className="p-6">
-      {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Ajukan Reservasi Ruangan</h1>
         <p className="text-muted-foreground mt-1">Isi formulir untuk mengajukan reservasi ruangan</p>
@@ -98,37 +141,41 @@ const ReservationForm = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {rooms.map((room) => (
-              <Card 
-                key={room.id} 
-                className={`cursor-pointer border-2 transition-all duration-200 hover:shadow-medium ${
-                  formData.roomId === room.id 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-border hover:border-primary/50'
-                }`}
-                onClick={() => handleInputChange("roomId", room.id)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium">{room.name}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {room.location}
-                      </p>
-                      <div className="flex items-center mt-2 text-sm">
-                        <Users className="h-4 w-4 mr-1 text-primary" />
-                        <span>Kapasitas: {room.capacity} orang</span>
+          {loadingRooms ? (
+            <p>Memuat daftar ruangan...</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {rooms.map((room) => (
+                <Card 
+                  key={room.id} 
+                  className={`cursor-pointer border-2 transition-all duration-200 hover:shadow-medium ${
+                    formData.room === room.id 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                  onClick={() => handleInputChange("room", room.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-medium">{room.name}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {room.location_name || room.location}
+                        </p>
+                        <div className="flex items-center mt-2 text-sm">
+                          <Users className="h-4 w-4 mr-1 text-primary" />
+                          <span>Kapasitas: {room.capacity} orang</span>
+                        </div>
                       </div>
+                      {formData.room === room.id && (
+                        <Badge className="bg-primary">Dipilih</Badge>
+                      )}
                     </div>
-                    {formData.roomId === room.id && (
-                      <Badge className="bg-primary">Dipilih</Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -146,36 +193,6 @@ const ReservationForm = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Date Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="date">Tanggal Penggunaan *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, "PPP") : "Pilih tanggal"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={(selectedDate) => {
-                        setDate(selectedDate);
-                        handleInputChange("date", selectedDate ? format(selectedDate, "yyyy-MM-dd") : "");
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
               {/* Purpose */}
               <div className="space-y-2">
                 <Label htmlFor="purpose">Tujuan Penggunaan *</Label>
@@ -189,68 +206,45 @@ const ReservationForm = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Start Time */}
+              {/* Start DateTime */}
               <div className="space-y-2">
-                <Label htmlFor="startTime">Waktu Mulai *</Label>
-                <Select value={formData.startTime} onValueChange={(value) => handleInputChange("startTime", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih waktu mulai" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-2" />
-                          {time}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="start">Waktu Mulai *</Label>
+                <Input
+                  type="datetime-local"
+                  id="start"
+                  name="start"
+                  value={formData.start}
+                  onChange={(e) => handleInputChange("start", e.target.value)}
+                  className="w-full"
+                  required
+                />
               </div>
 
-              {/* End Time */}
+              {/* End DateTime */}
               <div className="space-y-2">
-                <Label htmlFor="endTime">Waktu Selesai *</Label>
-                <Select value={formData.endTime} onValueChange={(value) => handleInputChange("endTime", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih waktu selesai" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.filter(time => time && time !== "").map((time) => (
-                      <SelectItem key={time} value={time}>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-2" />
-                          {time}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="end">Waktu Selesai *</Label>
+                <Input
+                  type="datetime-local"
+                  id="end"
+                  name="end"
+                  value={formData.end}
+                  onChange={(e) => handleInputChange("end", e.target.value)}
+                  className="w-full"
+                  required
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Number of Participants */}
               <div className="space-y-2">
-                <Label htmlFor="participants">Jumlah Peserta</Label>
+                <Label htmlFor="participants">Jumlah Peserta*</Label>
                 <Input
                   id="participants"
                   type="number"
                   placeholder="Contoh: 25"
-                  value={formData.participants}
-                  onChange={(e) => handleInputChange("participants", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="additionalNotes">Catatan Tambahan</Label>
-                <Textarea
-                  id="additionalNotes"
-                  placeholder="Catatan atau permintaan khusus..."
-                  value={formData.additionalNotes}
-                  onChange={(e) => handleInputChange("additionalNotes", e.target.value)}
-                  rows={3}
+                  value={formData.requested_capacity}
+                  onChange={(e) => handleInputChange("requested_capacity", e.target.value)}
                 />
               </div>
             </div>
@@ -264,7 +258,6 @@ const ReservationForm = () => {
                 <li>� Ruangan harus dikembalikan dalam kondisi bersih</li>
               </ul>
             </div>
-
             <Button type="submit" className="w-full bg-gradient-primary">
               <Send className="h-4 w-4 mr-2" />
               Ajukan Reservasi
@@ -277,4 +270,3 @@ const ReservationForm = () => {
 };
 
 export default ReservationForm;
-

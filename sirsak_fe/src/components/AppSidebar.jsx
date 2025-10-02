@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Calendar,
   Search,
@@ -11,7 +11,6 @@ import {
   BarChart3,
   Settings,
   Users,
-  Star,
   BookOpen,
   Bell,
   Home,
@@ -36,147 +35,104 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-// Mock user role - in real app this would come from authentication context
-const getCurrentUserRole = () => {
-  // For demo purposes, cycle through roles based on current path
-  const path = window.location.pathname;
-  if (path.includes('student')) return 'student';
-  if (path.includes('lecturer')) return 'faculty';
-  if (path.includes('admin')) return 'admin';
-  return 'student'; // default
-};
-
-const getUserName = (role) => {
-  switch (role) {
-    case 'student': return 'Ahmad Rizki';
-    case 'faculty': return 'Dr. Ahmad Susanto';
-    case 'admin': return 'Admin Sistem';
-    default: return 'User';
-  }
-};
-
 const menuItems = {
-  student: [
-    {
-      title: "Dashboard",
-      url: "/student/dashboard",
-      icon: Home,
-    },
-    {
-      title: "Cari Ruangan",
-      url: "/student/search",
-      icon: Search,
-    },
-    {
-      title: "Ajukan Reservasi",
-      url: "/student/reserve",
-      icon: Plus,
-    },
-    {
-      title: "Status Reservasi",
-      url: "/student/status",
-      icon: FileText,
-      badge: "3"
-    },
-    {
-      title: "Feedback",
-      url: "/student/feedback",
-      icon: MessageSquare,
-    }
-  ],
-  faculty: [
-    {
-      title: "Dashboard",
-      url: "/lecturer/dashboard",
-      icon: Home,
-    },
-    {
-      title: "Persetujuan Reservasi",
-      url: "/lecturer/approvals",
-      icon: CheckCircle,
-      badge: "3"
-    },
-    {
-      title: "Jadwal & Reservasi",
-      url: "/lecturer/schedule",
-      icon: Calendar,
-    },
-    {
-      title: "Laporan",
-      url: "/lecturer/reports",
-      icon: BarChart3,
-    }
+  user: [
+    { title: "Dashboard", url: "/user/dashboard", icon: Home },
+    { title: "Cari Ruangan", url: "/user/search", icon: Search },
+    { title: "Ajukan Reservasi", url: "/user/reserve", icon: Plus },
+    { title: "Status Reservasi", url: "/user/status", icon: FileText, badge: "3" },
+    { title: "Feedback", url: "/user/feedback", icon: MessageSquare }
   ],
   admin: [
-    {
-      title: "Dashboard",
-      url: "/admin/dashboard",
-      icon: Home,
-    },
-    {
-      title: "Kelola Ruangan",
-      url: "/admin/rooms",
-      icon: MapPin,
-    },
-    {
-      title: "Kelola Pengguna",
-      url: "/admin/users",
-      icon: Users,
-    },
-    {
-      title: "Persetujuan Akhir",
-      url: "/admin/approvals",
-      icon: CheckCircle,
-      badge: "8"
-    },
-    {
-      title: "Laporan Penggunaan",
-      url: "/admin/reports",
-      icon: BarChart3,
-    },
-    {
-      title: "Feedback Pengguna",
-      url: "/admin/feedback",
-      icon: MessageSquare,
-    },
-    {
-      title: "Pengaturan",
-      url: "/admin/settings",
-      icon: Settings,
-    }
+    { title: "Dashboard", url: "/admin/dashboard", icon: Home },
+    { title: "Kelola Ruangan", url: "/admin/rooms", icon: MapPin },
+    { title: "Kelola Pengguna", url: "/admin/users", icon: Users },
+    { title: "Laporan Penggunaan", url: "/admin/reports", icon: BarChart3 },
+    { title: "Feedback Pengguna", url: "/admin/feedback", icon: MessageSquare }
+  ],
+  superadmin: [
+    { title: "Dashboard", url: "/superadmin/dashboard", icon: Home },
+    { title: "Manajemen Admin", url: "/superadmin/admins", icon: Users },
+    { title: "Persetujuan Akhir", url: "/superadmin/approvals", icon: CheckCircle, badge: "8" },
+    { title: "Pengaturan Sistem", url: "/superadmin/settings", icon: Settings },
+    { title: "Laporan Global", url: "/superadmin/reports", icon: BarChart3 }
   ]
 };
 
+const getRoleBadgeColor = (role) => {
+  switch (role) {
+    case "user": return "bg-blue-500";
+    case "admin": return "bg-green-500";
+    case "superadmin": return "bg-purple-500";
+    default: return "bg-gray-500";
+  }
+};
+
+const getRoleLabel = (role) => {
+  switch (role) {
+    case "user": return "User";
+    case "admin": return "Admin";
+    case "superadmin": return "Super Admin";
+    default: return "User";
+  }
+};
+
 export function AppSidebar() {
+  const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
-  const userRole = getCurrentUserRole();
-  const userName = getUserName(userRole);
-  const items = menuItems[userRole] || menuItems.student;
 
-  const isActive = (path) => currentPath === path;
-  const getNavCls = ({ isActive }) =>
-    isActive 
-      ? "bg-primary/10 text-primary font-medium border-r-2 border-primary" 
-      : "hover:bg-muted/50 hover:text-foreground";
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
 
-  const getRoleBadgeColor = (role) => {
-    switch (role) {
-      case 'student': return 'bg-blue-500';
-      case 'faculty': return 'bg-green-500';
-      case 'admin': return 'bg-purple-500';
-      default: return 'bg-gray-500';
-    }
-  };
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        setUserName(localStorage.getItem("username") || "");
+        setUserRole(localStorage.getItem("role") || "user");
+      } catch (err) {
+        console.error("Error fetch user:", err);
+      }
+    };
+    fetchUser();
+  }, []);
 
-  const getRoleLabel = (role) => {
-    switch (role) {
-      case 'student': return 'Mahasiswa';
-      case 'faculty': return 'Dosen';
-      case 'admin': return 'Admin';
-      default: return 'User';
+  const items = menuItems[userRole] || [];
+
+  const handleLogout = async () => {
+    try {
+      const refresh = localStorage.getItem("refresh_token");
+      const access = localStorage.getItem("access_token");
+
+      // Kirim refresh token ke endpoint logout/blacklist
+      const res = await fetch("https://sirsakapi.teknohole.com/api/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${access}`,
+        },
+        body: JSON.stringify({ refresh }),
+      });
+
+      if (!res.ok) {
+        console.warn("Logout API gagal:", await res.json());
+      }
+
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("username");
+      localStorage.removeItem("role");
+      localStorage.removeItem("email");
+
+      alert("Logout berhasil.");
+
+      navigate("/");
+    } catch (error) {
+      console.error("Error saat logout:", error);
+      localStorage.clear();
+      navigate("/");
     }
   };
 
@@ -189,29 +145,29 @@ export function AppSidebar() {
       <SidebarHeader className="p-4 border-b">
         {!collapsed ? (
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-                  <BookOpen className="h-6 w-6 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-lg text-foreground truncate">
-                    SIRSAK
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    Sistem Informasi Ruangan
-                  </p>
-                </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-lg text-foreground truncate">
+                  SIRSAK
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Sistem Informasi Ruangan
+                </p>
               </div>
               <SidebarTrigger className="h-7 w-7 hover:bg-primary/10" />
             </div>
-            
+
             <div className="flex items-center space-x-2 p-2 bg-muted/50 rounded-lg">
               <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
                 <User className="h-4 w-4 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{userName}</p>
+                <p className="text-sm font-medium truncate">
+                  {userName || "Loading..."}
+                </p>
                 <Badge 
                   className={`text-xs px-2 py-0 ${getRoleBadgeColor(userRole)} text-white`}
                 >
@@ -222,9 +178,7 @@ export function AppSidebar() {
           </div>
         ) : (
           <div className="flex flex-col items-center space-y-2">
-            <div className="flex items-center justify-center w-full">
-              <SidebarTrigger className="h-6 w-6 hover:bg-primary/10" />
-            </div>
+            <SidebarTrigger className="h-6 w-6 hover:bg-primary/10" />
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
@@ -248,7 +202,12 @@ export function AppSidebar() {
                     <NavLink 
                       to={item.url} 
                       end 
-                      className={({ isActive }) => `${getNavCls({ isActive })} flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 group`}
+                      className={({ isActive }) =>
+                        `${isActive 
+                          ? "bg-primary/10 text-primary font-medium border-r-2 border-primary" 
+                          : "hover:bg-muted/50 hover:text-foreground"
+                        } flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 group`
+                      }
                     >
                       <item.icon className="h-5 w-5 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
                       {!collapsed && (
@@ -271,58 +230,26 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Notifications Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
-            Notifikasi
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <div className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-muted/50 transition-all duration-200 cursor-pointer group">
-                    <Bell className="h-5 w-5 flex-shrink-0 text-warning group-hover:scale-110 transition-transform duration-200" />
-                    {!collapsed && (
-                      <div className="flex items-center justify-between flex-1">
-                        <span>Notifikasi</span>
-                        <Badge 
-                          variant="destructive" 
-                          className="ml-2 text-xs px-1.5 py-0 bg-warning text-white"
-                        >
-                          {userRole === 'student' ? '2' : userRole === 'faculty' ? '3' : '5'}
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       {/* Footer */}
       <SidebarFooter className="p-4 border-t">
         {!collapsed ? (
-          <div className="space-y-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full justify-start hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all duration-200"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Keluar
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              � 2024 SiRuang v1.0
-            </p>
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full justify-start hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all duration-200"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Keluar
+          </Button>
         ) : (
           <Button 
             variant="outline" 
             size="sm" 
             className="w-full p-2 hover:bg-destructive/10 hover:text-destructive"
+            onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
           </Button>
@@ -331,4 +258,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-

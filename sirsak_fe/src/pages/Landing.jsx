@@ -11,37 +11,95 @@ import universityHero from "@/assets/university-hero.jpg";
 
 const Landing = () => {
   const [loginData, setLoginData] = useState({
-    email: "",
-    password: "",
-    role: ""
+    username: "",
+    password: ""
   });
   
   const [registerData, setRegisterData] = useState({
     email: "",
-    password: "",
-    confirmPassword: "",
-    name: "",
-    role: ""
+    password1: "",
+    password2: "",
+    username: "",
+    first_name: "",
+    last_name: ""
   });
 
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleForm = (e) => {
+    const { name, value } = e.target;
+    setRegisterData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setLoginData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  }
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Simulate login - redirect based on role
-    if (loginData.role === "mahasiswa") {
-      navigate("/student/dashboard");
-    } else if (loginData.role === "dosen") {
-      navigate("/lecturer/dashboard");
-    } else if (loginData.role === "admin") {
-      navigate("/admin/dashboard");
+
+    try {
+      console.log("Payload dikirim:", loginData);
+
+      const response = await fetch("https://sirsakapi.teknohole.com/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Login gagal");
+      }
+
+      const data = await response.json();
+
+      localStorage.setItem("access_token", data.access);
+      localStorage.setItem("refresh_token", data.refresh);
+      localStorage.setItem("username", data.user.username);
+      localStorage.setItem("email", data.user.email);
+      localStorage.setItem("role", data.user.role);
+
+      const role = localStorage.getItem("role"); 
+      navigate(`/${role}/dashboard`);
+    } catch (error) {
+      console.error("Error during login:", error);
+      alert("Login gagal. Periksa username/password.");
     }
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    // Simulate registration success
-    console.log("Registration data:", registerData);
+
+    try {
+      console.log("Payload dikirim:", registerData);
+
+      const response = await fetch("https://sirsakapi.teknohole.com/api/register", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        credentials: "include", 
+        body: JSON.stringify(registerData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(data.message || "Pendaftaran berhasil. Silahkan login.");
+      } else {
+        alert(data.message || "Pendaftaran gagal. Periksa data yang kamu masukkan.");
+      }
+    } catch (error) {
+      console.error("Error during register:", error);
+      alert("Terjadi kesalahan. Silakan coba lagi.");
+    }
   };
 
   return (
@@ -103,13 +161,14 @@ const Landing = () => {
                   <TabsContent value="login">
                     <form onSubmit={handleLogin} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="login-email">Email</Label>
+                        <Label htmlFor="login-username">Username</Label>
                         <Input
-                          id="login-email"
-                          type="email"
-                          placeholder="nama@universitas.ac.id"
-                          value={loginData.email}
-                          onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                          id="login-username"
+                          type="text"
+                          name="username"
+                          placeholder="Username Anda"
+                          value={loginData.username}
+                          onChange={handleForm}
                           required
                         />
                       </div>
@@ -118,23 +177,11 @@ const Landing = () => {
                         <Input
                           id="login-password"
                           type="password"
+                          name="password"
                           value={loginData.password}
-                          onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                          onChange={handleForm}
                           required
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="login-role">Role</Label>
-                        <Select value={loginData.role} onValueChange={(value) => setLoginData({...loginData, role: value})}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih role Anda" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="mahasiswa">Mahasiswa</SelectItem>
-                            <SelectItem value="dosen">Dosen</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
                       </div>
                       <Button type="submit" className="w-full bg-gradient-primary hover:scale-105 transition-all duration-300 button-glow">
                         Masuk
@@ -146,13 +193,14 @@ const Landing = () => {
                   <TabsContent value="register">
                     <form onSubmit={handleRegister} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="register-name">Nama Lengkap</Label>
+                        <Label htmlFor="register-username">Username</Label>
                         <Input
-                          id="register-name"
+                          id="register-username"
                           type="text"
-                          placeholder="Nama lengkap Anda"
-                          value={registerData.name}
-                          onChange={(e) => setRegisterData({...registerData, name: e.target.value})}
+                          name="username"
+                          placeholder="Username Anda"
+                          value={registerData.username}
+                          onChange={handleForm}
                           required
                         />
                       </div>
@@ -161,43 +209,56 @@ const Landing = () => {
                         <Input
                           id="register-email"
                           type="email"
+                          name="email"
                           placeholder="nama@universitas.ac.id"
                           value={registerData.email}
-                          onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
+                          onChange={handleForm}
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="register-password">Password</Label>
+                        <Label htmlFor="register-first-name">Nama Depan</Label>
                         <Input
-                          id="register-password"
-                          type="password"
-                          value={registerData.password}
-                          onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
+                          id="register-first-name"
+                          type="text"
+                          name="first_name"
+                          value={registerData.first_name}
+                          onChange={handleForm}
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="register-confirm">Konfirmasi Password</Label>
+                        <Label htmlFor="register-last-name">Nama Akhir</Label>
                         <Input
-                          id="register-confirm"
-                          type="password"
-                          value={registerData.confirmPassword}
-                          onChange={(e) => setRegisterData({...registerData, confirmPassword: e.target.value})}
+                          id="register-last-name"
+                          type="text"
+                          name="last_name"
+                          value={registerData.last_name}
+                          onChange={handleForm}
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="register-role">Role</Label>
-                        <Select value={registerData.role} onValueChange={(value) => setRegisterData({...registerData, role: value})}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih role Anda" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="mahasiswa">Mahasiswa</SelectItem>
-                            <SelectItem value="dosen">Dosen</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="register-password1">Password</Label>
+                        <Input
+                          id="register-password1"
+                          type="password"
+                          name="password1"
+                          value={registerData.password1}
+                          onChange={handleForm}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="register-password2">Konfirmasi Password</Label>
+                        <Input
+                          id="register-password2"
+                          type="password"
+                          name="password2"
+                          value={registerData.password2}
+                          onChange={handleForm}
+                          required
+                        />
                       </div>
                       <Button type="submit" className="w-full bg-gradient-primary hover:scale-105 transition-all duration-300 button-glow">
                         Daftar

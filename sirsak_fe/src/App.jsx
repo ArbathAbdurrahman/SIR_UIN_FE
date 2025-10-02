@@ -57,18 +57,18 @@ const App = () => (
         <AppLayout>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            <Route path="/student/search" element={<RoomSearch />} />
-            <Route path="/student/reserve" element={<ReservationForm />} />
-            <Route path="/student/status" element={<ReservationStatus />} />
-            <Route path="/student/feedback" element={<Feedback />} />
-            <Route path="/lecturer/dashboard" element={<FacultyDashboard />} />
-            <Route path="/lecturer/approvals" element={<ApprovalReservations />} />
-            <Route path="/lecturer/schedule" element={<ScheduleReservations />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/rooms" element={<RoomManagement />} />
-            <Route path="/admin/users" element={<UserManagement />} />
-            <Route path="/admin/approvals" element={<FinalApproval />} />
+            <Route path="/user/dashboard" element={<StudentDashboard />} />
+            <Route path="/user/search" element={<RoomSearch />} />
+            <Route path="/user/reserve" element={<ReservationForm />} />
+            <Route path="/user/status" element={<ReservationStatus />} />
+            <Route path="/user/feedback" element={<Feedback />} />
+            <Route path="/admin/dashboard" element={<FacultyDashboard />} />
+            <Route path="/admin/approvals" element={<ApprovalReservations />} />
+            <Route path="/admin/schedule" element={<ScheduleReservations />} />
+            <Route path="/superadmin/dashboard" element={<AdminDashboard />} />
+            <Route path="/superadmin/rooms" element={<RoomManagement />} />
+            <Route path="/superadmin/users" element={<UserManagement />} />
+            <Route path="/superadmin/approvals" element={<FinalApproval />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
