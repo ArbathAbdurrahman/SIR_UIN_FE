@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/axiosInstance";
 import { 
   ArrowLeft,
   Star,
@@ -13,87 +14,75 @@ import {
   Send,
   MapPin,
   Calendar,
-  ThumbsUp,
-  ThumbsDown
+  ThumbsUp
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Feedback = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
+  const [reservations, setReservations] = useState([]);
+  const [givenFeedbacks, setGivenFeedbacks] = useState([]); // <- feedback yang sudah ada
+  const [loading, setLoading] = useState(true);
   const [feedbackData, setFeedbackData] = useState({
-    reservationId: "",
+    reservation: "",
     rating: 0,
-    cleanliness: 0,
-    facilities: 0,
-    comfort: 0,
-    comments: ""
+    text: "",
   });
 
-  // Mock data for completed reservations
-  const completedReservations = [
-    {
-      id: "1",
-      room: "Lab Komputer 1",
-      location: "Gedung Teknik Lt. 2",
-      date: "2024-01-15",
-      time: "09:00 - 11:00",
-      purpose: "Praktikum Database"
-    },
-    {
-      id: "2", 
-      room: "Ruang Seminar A",
-      location: "Gedung Rektorat Lt. 3",
-      date: "2024-01-10",
-      time: "13:00 - 15:00",
-      purpose: "Presentasi Tugas Akhir"
-    }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [resReservations, resFeedbacks] = await Promise.all([
+          api.get("/reservations/"),
+          api.get("/feedback/"),
+        ]);
 
-  const selectedReservation = completedReservations.find(
-    r => r.id === feedbackData.reservationId
+        const now = new Date();
+
+        const feedbackReservationIds = resFeedbacks.data.results.map(
+          (fb) => fb.reservation
+        );
+
+        const filtered = resReservations.data.results.filter((r) => {
+          const endDate = new Date(r.end);
+          return (
+            r.status?.toLowerCase() === "approved" &&
+            endDate < now &&
+            !feedbackReservationIds.includes(r.id) // exclude yang sudah ada feedback
+          );
+        });
+
+        setReservations(filtered);
+        setGivenFeedbacks(resFeedbacks.data.results);
+      } catch (error) {
+        console.error("Gagal mengambil data:", error);
+        toast({
+          title: "Gagal memuat data",
+          description: "Terjadi kesalahan saat mengambil data dari server.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast]);
+
+  const selectedReservation = reservations.find(
+    (r) => r.id.toString() === feedbackData.reservation
   );
 
-    const StarRating = ({ rating, onRatingChange, label }) => {
-    return (
-      <div className="space-y-2">
-        <Label>{label}</Label>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => onRatingChange(star)}
-              className={`p-1 rounded transition-colors ${
-                star <= rating 
-                  ? "text-yellow-500" 
-                  : "text-gray-300 hover:text-yellow-400"
-              }`}
-            >
-              <Star className="h-6 w-6 fill-current" />
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {rating === 0 ? "Belum diberi rating" : 
-           rating === 1 ? "Sangat buruk" :
-           rating === 2 ? "Buruk" :
-           rating === 3 ? "Cukup" :
-           rating === 4 ? "Baik" : "Sangat baik"}
-        </p>
-      </div>
-    );
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!feedbackData.reservationId) {
+
+    if (!feedbackData.reservation) {
       toast({
         title: "Pilih reservasi",
         description: "Mohon pilih reservasi yang ingin diberi feedback",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -102,37 +91,87 @@ const Feedback = () => {
       toast({
         title: "Rating diperlukan",
         description: "Mohon berikan rating keseluruhan",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
-    toast({
-      title: "Feedback berhasil dikirim!",
-      description: "Terima kasih atas feedback Anda. Ini akan membantu kami meningkatkan layanan.",
-    });
+    try {
+      await api.post("/feedback/", {
+        reservation: feedbackData.reservation,
+        rating: feedbackData.rating,
+        text: feedbackData.text,
+      });
 
-    // Reset form
-    setFeedbackData({
-      reservationId: "",
-      rating: 0,
-      cleanliness: 0,
-      facilities: 0,
-      comfort: 0,
-      comments: ""
-    });
+      toast({
+        title: "Feedback berhasil dikirim!",
+        description: "Terima kasih atas feedback Anda.",
+      });
+
+      setFeedbackData({
+        reservation: "",
+        rating: 0,
+        text: "",
+      });
+
+      // Hapus dari daftar setelah submit
+      setReservations((prev) =>
+        prev.filter((r) => r.id.toString() !== feedbackData.reservation)
+      );
+    } catch (error) {
+      console.error("Gagal mengirim feedback:", error);
+      toast({
+        title: "Gagal mengirim feedback",
+        description: "Terjadi kesalahan saat mengirim data",
+        variant: "destructive",
+      });
+    }
   };
+
+  const StarRating = ({ rating, onRatingChange }) => (
+    <div className="space-y-2">
+      <Label>Rating Keseluruhan *</Label>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => onRatingChange(star)}
+            className={`p-1 rounded transition-colors ${
+              star <= rating
+                ? "text-yellow-500"
+                : "text-gray-300 hover:text-yellow-400"
+            }`}
+          >
+            <Star className="h-6 w-6 fill-current" />
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {rating === 0
+          ? "Belum diberi rating"
+          : rating === 1
+          ? "Sangat buruk"
+          : rating === 2
+          ? "Buruk"
+          : rating === 3
+          ? "Cukup"
+          : rating === 4
+          ? "Baik"
+          : "Sangat baik"}
+      </p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-gradient-primary text-white p-6">
         <div className="container mx-auto">
           <div className="flex items-center">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
-              onClick={() => navigate("/student/dashboard")}
+              onClick={() => navigate("/user/dashboard")}
               className="text-white hover:bg-white/20 mr-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -140,7 +179,9 @@ const Feedback = () => {
             </Button>
             <div>
               <h1 className="text-2xl font-bold">Feedback Ruangan</h1>
-              <p className="opacity-90">Berikan penilaian untuk ruangan yang telah Anda gunakan</p>
+              <p className="opacity-90">
+                Berikan penilaian untuk ruangan yang telah Anda gunakan
+              </p>
             </div>
           </div>
         </div>
@@ -155,28 +196,38 @@ const Feedback = () => {
                 Form Feedback Ruangan
               </CardTitle>
               <CardDescription>
-                Bantu kami meningkatkan kualitas layanan dengan memberikan feedback yang konstruktif
+                Hanya ruangan yang sudah selesai dan belum diberi feedback akan muncul di sini.
               </CardDescription>
             </CardHeader>
+
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Reservation Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="reservation">Pilih Reservasi *</Label>
-                  <Select 
-                    value={feedbackData.reservationId} 
-                    onValueChange={(value) => setFeedbackData({...feedbackData, reservationId: value})}
+                  <Select
+                    value={feedbackData.reservation}
+                    onValueChange={(value) =>
+                      setFeedbackData({ ...feedbackData, reservation: value })
+                    }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih reservasi yang telah selesai" />
+                      <SelectValue
+                        placeholder={
+                          loading
+                            ? "Memuat reservasi..."
+                            : reservations.length === 0
+                            ? "Tidak ada reservasi yang bisa diberi feedback"
+                            : "Pilih reservasi yang telah selesai"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {completedReservations.filter(reservation => reservation.id && reservation.id !== "").map((reservation) => (
-                        <SelectItem key={reservation.id} value={reservation.id}>
+                      {reservations.map((r) => (
+                        <SelectItem key={r.id} value={r.id.toString()}>
                           <div className="flex flex-col">
-                            <span className="font-medium">{reservation.room}</span>
+                            <span className="font-medium">{r.room_name}</span>
                             <span className="text-sm text-muted-foreground">
-                              {reservation.date} � {reservation.time}
+                              {new Date(r.start).toLocaleDateString()} • {r.purpose}
                             </span>
                           </div>
                         </SelectItem>
@@ -188,14 +239,15 @@ const Feedback = () => {
                     <div className="mt-3 p-4 bg-muted rounded-lg">
                       <div className="flex items-start justify-between">
                         <div className="space-y-1">
-                          <h4 className="font-medium">{selectedReservation.room}</h4>
+                          <h4 className="font-medium">{selectedReservation.room_name}</h4>
                           <p className="text-sm text-muted-foreground flex items-center">
                             <MapPin className="h-3 w-3 mr-1" />
-                            {selectedReservation.location}
+                            {selectedReservation.location_name}
                           </p>
                           <p className="text-sm text-muted-foreground flex items-center">
                             <Calendar className="h-3 w-3 mr-1" />
-                            {selectedReservation.date} � {selectedReservation.time}
+                            {new Date(selectedReservation.start).toLocaleString()} -{" "}
+                            {new Date(selectedReservation.end).toLocaleString()}
                           </p>
                           <p className="text-sm">{selectedReservation.purpose}</p>
                         </div>
@@ -205,105 +257,43 @@ const Feedback = () => {
                   )}
                 </div>
 
-                {/* Overall Rating */}
                 <StarRating
                   rating={feedbackData.rating}
-                  onRatingChange={(rating) => setFeedbackData({...feedbackData, rating})}
-                  label="Rating Keseluruhan *"
+                  onRatingChange={(rating) =>
+                    setFeedbackData({ ...feedbackData, rating })
+                  }
                 />
 
-                {/* Detailed Ratings */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <StarRating
-                    rating={feedbackData.cleanliness}
-                    onRatingChange={(cleanliness) => setFeedbackData({...feedbackData, cleanliness})}
-                    label="Kebersihan"
-                  />
-                  
-                  <StarRating
-                    rating={feedbackData.facilities}
-                    onRatingChange={(facilities) => setFeedbackData({...feedbackData, facilities})}
-                    label="Fasilitas"
-                  />
-                  
-                  <StarRating
-                    rating={feedbackData.comfort}
-                    onRatingChange={(comfort) => setFeedbackData({...feedbackData, comfort})}
-                    label="Kenyamanan"
-                  />
-                </div>
-
-                {/* Comments */}
                 <div className="space-y-2">
                   <Label htmlFor="comments">Komentar & Saran</Label>
                   <Textarea
                     id="comments"
-                    placeholder="Bagikan pengalaman Anda menggunakan ruangan ini. Apa yang bisa diperbaiki? Apa yang sudah baik?"
-                    value={feedbackData.comments}
-                    onChange={(e) => setFeedbackData({...feedbackData, comments: e.target.value})}
+                    placeholder="Bagikan pengalaman Anda menggunakan ruangan ini."
+                    value={feedbackData.text}
+                    onChange={(e) =>
+                      setFeedbackData({ ...feedbackData, text: e.target.value })
+                    }
                     rows={4}
                   />
                 </div>
 
-                {/* Info Box */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex">
                     <ThumbsUp className="h-5 w-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
                     <div className="text-sm text-blue-700">
                       <h4 className="font-medium mb-1">Feedback Anda Berharga</h4>
                       <p>
-                        Feedback Anda membantu kami meningkatkan kualitas ruangan dan layanan untuk 
-                        seluruh civitas akademika. Terima kasih atas partisipasi Anda!
+                        Feedback Anda membantu kami meningkatkan kualitas ruangan dan layanan untuk seluruh civitas akademika.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Submit Button */}
                 <Button type="submit" className="w-full bg-gradient-primary">
                   <Send className="h-4 w-4 mr-2" />
                   Kirim Feedback
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-
-          {/* Recent Feedback */}
-          <Card className="mt-8 shadow-soft">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <MessageSquare className="h-5 w-5 mr-2 text-primary" />
-                Feedback Terbaru Anda
-              </CardTitle>
-              <CardDescription>
-                Riwayat feedback yang telah Anda berikan
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Sample feedback history */}
-                <div className="p-4 border border-border rounded-lg">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-medium">Lab Komputer 2</h4>
-                      <p className="text-sm text-muted-foreground">15 Januari 2024</p>
-                    </div>
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    "Lab sangat bersih dan fasilitas komputer berfungsi dengan baik. 
-                    Semoga bisa dipertahankan kualitasnya."
-                  </p>
-                </div>
-                
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Belum ada feedback lainnya</p>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -313,4 +303,3 @@ const Feedback = () => {
 };
 
 export default Feedback;
-

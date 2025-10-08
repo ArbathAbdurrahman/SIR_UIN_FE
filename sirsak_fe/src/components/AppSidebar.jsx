@@ -40,7 +40,7 @@ const menuItems = {
     { title: "Dashboard", url: "/user/dashboard", icon: Home },
     { title: "Cari Ruangan", url: "/user/search", icon: Search },
     { title: "Ajukan Reservasi", url: "/user/reserve", icon: Plus },
-    { title: "Status Reservasi", url: "/user/status", icon: FileText, badge: "3" },
+    { title: "Status Reservasi", url: "/user/status", icon: FileText},
     { title: "Feedback", url: "/user/feedback", icon: MessageSquare }
   ],
   admin: [

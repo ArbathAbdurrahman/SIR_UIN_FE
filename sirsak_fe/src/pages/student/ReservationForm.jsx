@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/axiosInstance";
 import { 
   Calendar as CalendarIcon,
   Clock,
@@ -42,24 +43,8 @@ const ReservationForm = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const token = localStorage.getItem("access_token"); // ambil dari localStorage setelah login
-        if (!token) {
-          throw new Error("Token tidak ditemukan, silakan login ulang");
-        }
-
-        const res = await fetch("https://sirsakapi.teknohole.com/api/rooms/", {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error("Gagal mengambil data rooms");
-        }
-
-        const data = await res.json();
-        setRooms(data.results); // sesuaikan struktur JSON kamu
+        const res = await api.get("/rooms/");
+        setRooms(res.data.results || []); // sesuaikan struktur JSON dari backend
       } catch (err) {
         console.error("Gagal mengambil rooms:", err);
         toast({ title: "Gagal memuat data ruangan", variant: "destructive" });
@@ -71,54 +56,51 @@ const ReservationForm = () => {
     fetchRooms();
   }, []);
 
-  const timeSlots = [
-    "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
-    "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
-  ];
-
+  // === HANDLE FORM CHANGE ===
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
+  // === HANDLE SUBMIT ===
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // validasi field wajib
     if (!formData.room || !formData.start || !formData.end || !formData.purpose || !formData.requested_capacity) {
       toast({
         title: "Mohon lengkapi semua field yang wajib diisi",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     try {
-      // kirim data ke API reservasi
-      const res = await fetch("https://sirsakapi.teknohole.com/api/reservations/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!res.ok) {
-        throw new Error("Gagal mengajukan reservasi");
-      }
+      const res = await api.post("/reservations/", formData);
 
       toast({
         title: "Reservasi berhasil diajukan!",
-        description: "Permohonan Anda akan direview oleh staff fakultas",
+        variant: "success",
       });
 
-      const role = localStorage.getItem("role");
-      navigate(`/${role}/status`);
+      // reset form
+      setFormData({
+        room: "",
+        start: "",
+        end: "",
+        purpose: "",
+        requested_capacity: "",
+      });
+
     } catch (err) {
-      console.error(err);
-      toast({ title: "Gagal mengajukan reservasi", variant: "destructive" });
+      console.error("Gagal mengajukan reservasi:", err);
+      toast({
+        title: "Gagal mengajukan reservasi",
+        description: err.response?.data?.detail || "Terjadi kesalahan pada server",
+        variant: "destructive",
+      });
     }
   };
 

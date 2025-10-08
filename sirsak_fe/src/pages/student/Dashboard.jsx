@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
+import api from "@/lib/axiosInstance";
 import { 
   Calendar,
   Clock,
@@ -25,29 +26,29 @@ const StudentDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const res = await fetch("https://sirsakapi.teknohole.com/api/reservations", {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
-          },
-        });
+        // axiosInstance sudah punya baseURL dan Authorization interceptor
+        const res = await api.get("/reservations/");
 
-        if (!res.ok) {
-          throw new Error("Gagal fetch data dashboard");
-        }
-
-        const data = await res.json();
-
-        // Ambil 3 reservasi terakhir
+        // axios otomatis parse JSON, pakai res.data
+        const data = res.data;
         const reservations = data.results || [];
-        setRecentReservations(reservations.slice(0, 3));
 
-        // Contoh: upcoming schedule = filter yang tanggalnya >= hari ini
         const today = new Date().toISOString().split("T")[0];
+
+        // Ambil 3 reservasi ke depan
+        const soon = reservations.filter(r => r.start >= today);
+        setRecentReservations(soon.slice(0, 3));
+
+        // Ambil 3 reservasi sebelumnya (atau hari ini)
         const upcoming = reservations.filter(r => r.start <= today);
         setUpcomingSchedule(upcoming.slice(0, 3));
+
       } catch (err) {
-        console.error(err);
+        console.error("Gagal fetch data dashboard:", err);
+
+        // Tampilkan error ke UI kalau mau
+        setRecentReservations([]);
+        setUpcomingSchedule([]);
       } finally {
         setLoading(false);
       }
